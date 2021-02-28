@@ -5,11 +5,11 @@ from PIL import Image, ImageDraw
 from midi_generator import convert_data_to_midi
 import sys
 
-logger = getLogger("accelbrainbase")
-handler = StreamHandler()
-handler.setLevel(DEBUG)
-logger.setLevel(DEBUG)
-logger.addHandler(handler)
+# logger = getLogger("accelbrainbase")
+# handler = StreamHandler()
+# handler.setLevel(DEBUG)
+# logger.setLevel(DEBUG)
+# logger.addHandler(handler)
 
 def train_network():
     print("Creating model")
@@ -42,17 +42,21 @@ def train_network():
     epochs = 1
     if len(sys.argv) > 2:
         epochs = int(sys.argv[2])
+    i = 0
+    while True:
+        print(f"Training model: {i}")
+        ebgan_image_generator.learn(
+            # `int` of the number of training iterations.
+            iter_n=epochs,
+            # `int` of the number of learning of the discriminative model.
+            k_step=10,
+        )
 
-    print("Training model")
-    ebgan_image_generator.learn(
-        # `int` of the number of training iterations.
-        iter_n=epochs,
-        # `int` of the number of learning of the discriminative model.
-        k_step=10,
-    )
-
-    print("Saving model to file")
-    ebgan_image_generator.EBGAN.generative_model.save_parameters("networks/edmgan.network")
+        print("Saving model to file")
+        ebgan_image_generator.EBGAN.generative_model.save_parameters(f"networks/edmgan{i * epochs + 21}.network")
+        if i % 5 == 0:
+            create_midi(ebgan_image_generator, f"trains_{i * epochs + 21}_output")
+        i+=1
 
 def generate_output():
     ebgan_image_generator = EBGANImageGenerator(
@@ -79,6 +83,12 @@ def generate_output():
     except Exception as e:
         print("No model found")
         return
+    name = "test"
+    if len(sys.argv) > 2:
+        name = sys.argv[2]
+    create_midi(ebgan_image_generator, name)
+
+def create_midi(ebgan_image_generator, name):
     print("Generating output")
     arr = ebgan_image_generator.EBGAN.generative_model.draw().asnumpy()
     image = arr[0, 0]
@@ -90,14 +100,7 @@ def generate_output():
             if image[y][x] < 0.5:
                 g = 0
             img_drawer.point((x,y), fill = (g,g,g))
-
-    print("Showing Image")
     img.show()
-
-    name = "test"
-    if len(sys.argv) > 2:
-        name = sys.argv[2]
-
     print("Saving to midi file")
     midi = convert_data_to_midi(image, name)
     # return {image, midi, img}
