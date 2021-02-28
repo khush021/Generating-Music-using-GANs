@@ -1,1 +1,1 @@
-# Angel_Hacks_Project
+# GAN Music Generator
