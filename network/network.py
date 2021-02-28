@@ -4,6 +4,7 @@ import mxnet as mx
 from PIL import Image, ImageDraw
 from midi_generator import convert_data_to_midi
 import sys
+import os
 
 # logger = getLogger("accelbrainbase")
 # handler = StreamHandler()
@@ -78,7 +79,7 @@ def generate_output():
         ctx = mx.cpu()
     )
     try:
-        ebgan_image_generator.EBGAN.generative_model.load_parameters("networks/edmgan.network")
+        ebgan_image_generator.EBGAN.generative_model.load_parameters("networks/edmgan101.network")
         pass
     except Exception as e:
         print("No model found")
@@ -92,15 +93,36 @@ def create_midi(ebgan_image_generator, name):
     print("Generating output")
     arr = ebgan_image_generator.EBGAN.generative_model.draw().asnumpy()
     image = arr[0, 0]
-    img = Image.new(size = (128, 96), mode = "RGB")
-    img_drawer = ImageDraw.Draw(img)
+    img_max = 0
+    img_min = 1
     for y in range(len(image)):
         for x in range(len(image[y])):
-            g = 255
-            if image[y][x] < 0.5:
-                g = 0
-            img_drawer.point((x,y), fill = (g,g,g))
-    img.show()
-    print("Saving to midi file")
-    midi = convert_data_to_midi(image, name)
+            img_max = max(img_max, image[y][x])
+            img_min = min(img_min, image[y][x])
+
+    for y in range(len(image)):
+        for x in range(len(image[y])):
+            image[y,x] -= img_min
+            image[y,x] /= (img_max - img_min)
+
+    os.mkdir(f"{name}")
+
+    for i in range(1, 20):
+        img = Image.new(size = (128, 96), mode = "RGB")
+        img_drawer = ImageDraw.Draw(img)
+        invert = 1
+        if i <= 10:
+            invert = -1
+
+        for y in range(len(image)):
+            for x in range(len(image[y])):
+                g = 255
+                if image[y][x] * invert < invert * i / 20:
+                    g = 0
+                img_drawer.point((x,y), fill = (g,g,g))
+        img.show()
+        os.mkdir(f'{name}/{i * 5}_percent')
+        img.save(f'{name}/{i * 5}_percent/image.png')
+        print("Saving to midi file")
+        midi = convert_data_to_midi(image, f"{name}/{i * 5}_percent/midi" , i / 20)
     # return {image, midi, img}

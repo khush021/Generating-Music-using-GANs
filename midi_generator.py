@@ -1,13 +1,18 @@
 from midi_data_extractor import PlayedNote
 from music21 import *
 
-def convert_data_to_midi(input_data, name):
+def convert_data_to_midi(input_data, name, percent):
     print("Turning data into midi stream")
     _stream = stream.Stream()
+
+    invert = 1
+    if percent < .50:
+        invert = -1
+
     for x in range(len(input_data[0])) :
         notes = []
         for y in range(len(input_data)):
-            if(input_data[y][x] > 0.5):
+            if input_data[y][x] * invert > percent * invert:
                 notes.append(note.Note(96 - y))
         midi_note = None
         if len(notes) > 0:
