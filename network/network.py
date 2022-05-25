@@ -32,7 +32,6 @@ def train_network():
         # context for the network to run in
         ctx = mx.cpu()
     )
-
     print("Loading model from file")
     try:
         ebgan_image_generator.EBGAN.generative_model.load_parameters("networks/edmgan.network")
